@@ -1,22 +1,29 @@
 package com.rei.interview.product;
 
-import com.rei.interview.util.Cache;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 public class ProductRepository {
 
-    private Map<String, Product> products = new Cache<>();
+    private final Map<String, Product> products = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> brandList= new ConcurrentHashMap<>();
 
-    public void addProduct(Product product) {
+    public Product addProduct(Product product) {
         products.put(product.getProductId(), product);
+        Set<String> set = brandList.computeIfAbsent(product.getBrand(), k -> new HashSet<>());
+        if(set.add(product.getProductId())) return product;
+        return null;
     }
 
-    public Product getProduct(String productId) {
+    public Product getProductById(String productId) {
         return products.get(productId);
+    }
+
+    public Set<String> getProductIdByBrand(String brand){
+        return brandList.get(brand);
     }
 
     public Collection<Product> getAll() {

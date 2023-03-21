@@ -15,6 +15,8 @@ import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class ProductService {
@@ -27,17 +29,41 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-    public boolean isValidProduct(Product product) {
-        return true;
+    public void isValidProduct(Product product) throws Exception {
+        if (product.getProductId() == null || product.getProductId().isEmpty()) {
+            throw new Exception("empty product id");
+        }
+        if (product.getPrice() == null || product.getPrice().equals(BigDecimal.ZERO)) {
+            throw new Exception("empty product price");
+        }
+        if (product.getBrand() == null || product.getBrand().isEmpty()) {
+            throw new Exception("empty brand");
+        }
     }
 
     public Product getProduct(String productId) {
-        return productRepository.getProduct(productId);
+        return productRepository.getProductById(productId);
     }
 
     public List<Product> getAllProducts() {
         return new ArrayList<>(productRepository.getAll());
     }
+
+    public List<Product> getProductsByBrand(String brand) {
+        Set<String> productIdByBrand = productRepository.getProductIdByBrand(brand);
+        if (productIdByBrand == null || productIdByBrand.size() == 0) return null;
+        List<Product> list = productIdByBrand.stream()
+                .map((id) -> productRepository.getProductById(id))
+                .collect(Collectors.toList());
+        return list;
+    }
+
+    public Product addNewProduct(Product product) throws Exception {
+        isValidProduct(product);
+        return productRepository.addProduct(product);
+    }
+
+
 
     /**
      * Populates the product repository with data from products.txt
@@ -46,7 +72,7 @@ public class ProductService {
      */
     @PostConstruct
     public void populateProducts() throws IOException {
-        try(Reader in = new InputStreamReader(getClass().getResourceAsStream("/products.csv"))) {
+        try (Reader in = new InputStreamReader(getClass().getResourceAsStream("/products.csv"))) {
             Iterable<CSVRecord> records = CSVFormat.DEFAULT
                     .withHeader("productId", "brand", "description", "price")
                     .withFirstRecordAsHeader()
